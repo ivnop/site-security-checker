@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>Security Checker</title>
+</head>
+<body>
+
+<h1>Security Checker</h1>
+<p>Check security of any website</p>
+
+<input type="text" id="domain"
+placeholder="example.com">
+<button onclick="checkSite()">Analyze</button>
+
+<div id="result"></div>
+
+<script>
+function checkSite() {
+ const domain =
+document.getElementById("domain").value;
+
+document.getElementById("result").innerTex
+t =
+  "Analyzing " + domain + "...
+(working)";
+}
+</script>
+
+</body>
+</html>
