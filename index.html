@@ -1,162 +1,436 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>SiteGuard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SiteGuard — Security Analysis</title>
 <style>
 :root{
---bg:#020617;--border:#1e293b;--text:#e5e7eb;
---muted:#94a3b8;--primary:#38bdf8;--accent:#0ea5e9;
---ok:#4ade80;--warn:#facc15;--bad:#f87171;
+  --bg:#020617;--border:#1e293b;--text:#e5e7eb;--muted:#94a3b8;
+  --primary:#38bdf8;--accent:#0ea5e9;--ok:#4ade80;--warn:#facc15;--bad:#f87171;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
-header{padding:20px;border-bottom:1px solid var(--border)}
-section{display:none;padding:40px;max-width:1100px;margin:auto}
-.active{display:block}
-input{padding:14px;width:280px;border-radius:8px;border:1px solid var(--border);
-background:var(--bg);color:var(--text)}
-button{padding:14px 22px;border-radius:8px;border:none;
-background:linear-gradient(90deg,var(--primary),var(--accent));
-color:#020617;font-weight:bold;cursor:pointer}
-.card{border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px}
-.badge{padding:5px 10px;border-radius:20px;font-size:.8rem}
+body{margin:0;font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;background:var(--bg);color:var(--text)}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border)}
+h1,h2,h3{margin:0}
+.container{max-width:1100px;margin:0 auto;padding:28px}
+.hero{padding:48px 24px;text-align:center}
+.input-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+input[type="text"]{padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);min-width:320px}
+.btn{padding:12px 18px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--primary),var(--accent));color:#020617;font-weight:700;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.card{background:transparent;border:1px solid var(--border);padding:18px;border-radius:12px}
+.badge{display:inline-block;padding:6px 10px;border-radius:18px;font-size:.85rem}
 .ok{background:#052e1a;color:var(--ok)}
 .warn{background:#3a2e05;color:var(--warn)}
 .bad{background:#3a0505;color:var(--bad)}
-.locked{filter:blur(4px);opacity:.5}
-.chatbox{border-top:1px solid var(--border);padding-top:20px}
+.locked{filter:blur(4px);opacity:.55}
+.loading{width:44px;height:44px;border:4px solid var(--border);border-top:4px solid var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin:24px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.footer{padding:24px;text-align:center;color:var(--muted);border-top:1px solid var(--border);margin-top:24px}
+.chat{margin-top:14px;padding:12px;border-radius:10px;border:1px dashed var(--border);color:var(--muted);background:rgba(255,255,255,0.01)}
+.small{color:var(--muted);font-size:.95rem}
+.hidden{display:none}
 </style>
 </head>
-
 <body>
-
 <header>
-<h2>SiteGuard</h2>
+  <div style="font-weight:700">SiteGuard</div>
+  <nav class="small" style="color:var(--muted)">
+    v1 • MVP visual — sem backend
+  </nav>
 </header>
 
-<section id="home" class="active">
-<h1>Website Security Check</h1>
-<input id="urlInput" placeholder="https://example.com">
-<br><br>
-<button onclick="scan()">Analyze</button>
-</section>
+<div class="container">
+  <section class="hero">
+    <h1>Verifique a segurança do seu site — rápido</h1>
+    <p class="small">Insira o domínio e rode verificação. Plano grátis com 4 checks. Avançado libera 4 checks extras + copiloto passo-a-passo.</p>
 
-<section id="results">
-<h2>Results</h2>
+    <div class="input-row">
+      <input id="urlInput" type="text" placeholder="https://example.com ou example.com">
+      <button id="runBtn" class="btn" onclick="scan()">Analyze</button>
+    </div>
+  </section>
 
-<div class="card">
-<strong>HTTPS</strong> <span id="httpsB" class="badge"></span>
+  <section id="results" class="hidden">
+    <div id="loading" class="loading hidden" aria-hidden="true"></div>
+
+    <div id="summary" class="card hidden">
+      <h2>Resumo</h2>
+      <div style="display:flex;gap:18px;align-items:center;margin-top:12px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div class="small">Score</div>
+          <div id="scoreDisplay" style="font-size:28px;font-weight:800">0</div>
+        </div>
+        <div style="flex:3">
+          <div class="small">URL analisada</div>
+          <div id="analyzedUrl" style="font-weight:600;word-break:break-all"></div>
+          <div class="small" style="margin-top:6px;color:var(--muted)">Operação: heurísticas via proxy público — para 100% confiança use backend.</div>
+        </div>
+      </div>
+    </div>
+
+    <br>
+
+    <div id="basicChecks" class="grid">
+      <div class="card">
+        <h3>HTTPS</h3>
+        <div id="httpsBadge" class="badge"></div>
+        <div class="small" id="httpsNote"></div>
+      </div>
+
+      <div class="card">
+        <h3>Availability & Response</h3>
+        <div id="upBadge" class="badge"></div>
+        <div class="small" id="timeNote"></div>
+      </div>
+
+      <div class="card">
+        <h3>URL hygiene</h3>
+        <div id="urlBadge" class="badge"></div>
+        <div class="small" id="urlNote"></div>
+      </div>
+
+      <div class="card">
+        <h3>Mixed content (heurístico)</h3>
+        <div id="mixedBadge" class="badge"></div>
+        <div class="small" id="mixedNote"></div>
+      </div>
+    </div>
+
+    <br>
+    <div>
+      <h3>Advanced checks (bloqueadas)</h3>
+      <div id="advancedGrid" class="grid locked">
+        <div class="card">Security headers (requires backend)</div>
+        <div class="card">CSP / HSTS (requires backend)</div>
+        <div class="card">Server fingerprinting (requires backend)</div>
+        <div class="card">Detailed risk summary & fixes</div>
+      </div>
+    </div>
+
+    <br>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn" onclick="downloadReport()">Download PDF (basic)</button>
+      <button class="btn" onclick="goToPlans()">Unlock Advanced</button>
+    </div>
+
+    <div class="chat">
+      <strong>Security Copilot</strong>
+      <div id="aiOutput" class="small" style="margin-top:8px">Copilot disponível: upgrade para ver correções passo-a-passo.</div>
+    </div>
+  </section>
+
+  <section id="plans" class="hidden" style="margin-top:18px">
+    <div class="grid">
+      <div class="card">
+        <h3>Basic</h3>
+        <p class="small">4 checks: HTTPS, availability, response time, URL hygiene + mixed content heuristic.</p>
+        <strong>Free</strong>
+      </div>
+      <div class="card">
+        <h3>Advanced</h3>
+        <p class="small">+4 checks, full copiloto passo-a-passo, PDF com recomendações detalhadas.</p>
+        <strong>$9 / scan (simulado)</strong>
+        <div style="margin-top:12px">
+          <button class="btn" onclick="simulatePayment()">Proceed to payment (demo)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">© SiteGuard — MVP</div>
 </div>
-
-<div class="card">
-<strong>Response Time</strong> <span id="timeB" class="badge"></span>
-</div>
-
-<div class="card">
-<strong>Availability</strong> <span id="upB" class="badge"></span>
-</div>
-
-<div class="card">
-<strong>URL Hygiene</strong> <span id="urlB" class="badge"></span>
-</div>
-
-<h3>Advanced Checks</h3>
-<div class="locked">
-<div class="card">Security headers</div>
-<div class="card">CMS exposure</div>
-<div class="card">Mixed content</div>
-<div class="card">Risk summary</div>
-</div>
-
-<br>
-<button onclick="goPlans()">Unlock Advanced</button>
-
-<div class="chatbox">
-<h3>Security Copilot</h3>
-<p id="aiText">Upgrade to Advanced to get full guidance.</p>
-</div>
-</section>
-
-<section id="plans">
-<h2>Plans</h2>
-<div class="card">
-<h3>Basic</h3>
-<p>4 essential checks</p>
-<strong>Free</strong>
-</div>
-
-<div class="card">
-<h3>Advanced</h3>
-<p>8 checks + AI Copilot</p>
-<strong>$9 / scan</strong><br><br>
-<button onclick="unlock()">Proceed to payment</button>
-</div>
-</section>
 
 <script>
-let advanced=false;
-let issues=[];
+/* Helpers */
+function el(id){ return document.getElementById(id) }
+function showEl(elm){ elm.classList.remove('hidden') }
+function hideEl(elm){ elm.classList.add('hidden') }
 
-function show(id){
-document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
+/* State */
+let isAdvanced = false
+let lastIssues = []
+let lastReport = null
+
+/* Proxy helper: allorigins GET */
+async function fetchViaAllOrigins(targetUrl, timeoutMs=8000){
+  const api = 'https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl)
+  const controller = new AbortController()
+  const id = setTimeout(()=>controller.abort(), timeoutMs)
+  try{
+    const res = await fetch(api, { signal: controller.signal })
+    clearTimeout(id)
+    if(!res.ok) throw new Error('proxy error')
+    const j = await res.json()
+    // j.contents contains page HTML
+    return { ok:true, contents: j.contents }
+  }catch(e){
+    clearTimeout(id)
+    return { ok:false, error: e.message || 'fetch error' }
+  }
 }
 
+/* Normalize user input to host forms */
+function normalizeInput(raw){
+  raw = (raw || '').trim()
+  if(!raw) return null
+  // if no protocol, try with https:// first
+  if(!/^https?:\/\//i.test(raw)){
+    raw = 'https://' + raw
+  }
+  try{
+    const u = new URL(raw)
+    // return origin (protocol + host + optional port) and pathname for later
+    return { original: raw, origin: u.origin, href: u.href, path: u.pathname + u.search }
+  }catch(e){
+    return null
+  }
+}
+
+/* Main scan flow */
 async function scan(){
-issues=[];
-show("results");
-const url=urlInput.value;
+  const raw = el('urlInput').value
+  const norm = normalizeInput(raw)
+  if(!norm){ alert('Digite uma URL válida (ex: example.com ou https://example.com)'); return }
 
-// HTTPS (heuristic)
-const https=url.startsWith("https://");
-httpsB.textContent=https?"OK":"Missing";
-httpsB.className="badge "+(https?"ok":"bad");
-if(!https)issues.push("Your site does not use HTTPS.");
+  // UI switches
+  hideEl(el('plans'))
+  showEl(el('results'))
+  showEl(el('loading'))
+  hideEl(el('summary'))
+  hideEl(el('basicChecks'))
 
-// Availability + response
-let start=performance.now();
-let up=true;
-try{await fetch(url,{mode:"no-cors"})}catch{up=false}
-let time=performance.now()-start;
+  lastIssues = []
+  lastReport = { url: norm.href, checks: {} }
 
-upB.textContent=up?"Online":"Offline";
-upB.className="badge "+(up?"ok":"bad");
-if(!up)issues.push("Your site appears to be offline.");
+  // Attempt HTTPS first via proxy
+  const httpsTry = await fetchViaAllOrigins(norm.origin)
+  let using = null
+  let content = ''
+  let start = performance.now()
+  if(httpsTry.ok){
+    using = 'https'
+    content = httpsTry.contents
+    lastReport.checks.fetchProtocol = 'https'
+  }else{
+    // try http
+    const httpTry = await fetchViaAllOrigins(norm.origin.replace(/^https:/,'http:'))
+    if(httpTry.ok){
+      using = 'http'
+      content = httpTry.contents
+      lastReport.checks.fetchProtocol = 'http'
+    }else{
+      using = null
+      lastReport.checks.fetchProtocol = 'none'
+    }
+  }
+  const elapsed = Math.round(performance.now()-start)
 
-timeB.textContent=time<800?"Fast":"Slow";
-timeB.className="badge "+(time<800?"ok":"warn");
-if(time>800)issues.push("Your site responds slowly.");
+  // Availability & response
+  const up = !!using
+  lastReport.checks.up = up
+  lastReport.checks.responseTimeMs = elapsed
 
-// URL hygiene
-const clean=!url.includes("?");
-urlB.textContent=clean?"Clean":"Suspicious";
-urlB.className="badge "+(clean?"ok":"warn");
-if(!clean)issues.push("Your URL contains parameters that may expose data.");
+  // HTTPS check
+  const hasHttps = using === 'https'
+  lastReport.checks.hasHttps = hasHttps
 
-updateAI();
+  // Mixed content heuristic: search for 'http://' in returned HTML while using https
+  let mixed = false
+  if(hasHttps && content){
+    const matches = content.match(/http:\/\/[^"'>\s]+/gi)
+    if(matches && matches.length>0) mixed = true
+    lastReport.checks.mixedCount = matches?matches.length:0
+  } else {
+    lastReport.checks.mixedCount = 0
+  }
+
+  // URL hygiene (presence of ? or suspicious tokens)
+  const suspicious = norm.href.includes('?') || norm.href.includes('%3C') || norm.href.includes('=') 
+  lastReport.checks.urlHygiene = !suspicious
+
+  // CMS heuristics: look for wp- or 'generator' meta
+  let cmsHints = []
+  if(content){
+    const low = content.toLowerCase()
+    if(low.includes('wp-content') || low.includes('wordpress')) cmsHints.push('WordPress')
+    if(low.includes('drupal')) cmsHints.push('Drupal')
+    if(low.includes('joomla')) cmsHints.push('Joomla')
+    // CSP meta presence
+    if(low.includes('content-security-policy')) lastReport.checks.hasCSP = true
+    else lastReport.checks.hasCSP = false
+  } else {
+    lastReport.checks.hasCSP = false
+  }
+  lastReport.checks.cmsHints = cmsHints
+
+  // Calculate score (weights)
+  let score = 0
+  if(hasHttps) score += 40
+  if(up) score += 20
+  if(lastReport.checks.responseTimeMs < 800) score += 20
+  if(lastReport.checks.urlHygiene) score += 20
+
+  lastReport.score = Math.min(100,score)
+
+  // Build issues array
+  lastIssues = []
+  if(!hasHttps) lastIssues.push('No HTTPS detected — site should use TLS certificate.')
+  if(!up) lastIssues.push('Site did not respond via proxy — may be down or blocking requests.')
+  if(lastReport.checks.responseTimeMs > 800) lastIssues.push('Slow response time (>800ms).')
+  if(!lastReport.checks.urlHygiene) lastIssues.push('URL contains query or suspicious tokens.')
+  if(lastReport.checks.mixedCount > 0) lastIssues.push('Detected references to insecure (http://) resources (mixed content).')
+
+  // fill UI
+  el('analyzedUrl').textContent = norm.href
+  el('scoreDisplay').textContent = lastReport.score
+
+  // badges
+  el('httpsBadge').textContent = hasHttps ? 'OK' : 'Missing'
+  el('httpsBadge').className = 'badge ' + (hasHttps ? 'ok' : 'bad')
+  el('httpsNote').textContent = hasHttps ? 'TLS detected (via proxy).' : 'HTTPS not detected (we tried https and http).'
+
+  el('upBadge').textContent = up ? 'Online' : 'Offline'
+  el('upBadge').className = 'badge ' + (up ? 'ok' : 'bad')
+  el('timeNote').textContent = 'Response time: ' + lastReport.checks.responseTimeMs + 'ms'
+
+  el('timeB')?.remove?.() // safe
+
+  el('mixedBadge').textContent = lastReport.checks.mixedCount > 0 ? `${lastReport.checks.mixedCount} references` : 'None found'
+  el('mixedBadge').className = 'badge ' + (lastReport.checks.mixedCount > 0 ? 'warn' : 'ok')
+  el('mixedNote').textContent = lastReport.checks.mixedCount > 0 ? 'Mixed content can break HTTPS and leak data.' : 'No obvious mixed content references detected (heuristic).'
+
+  el('urlBadge').textContent = lastReport.checks.urlHygiene ? 'Clean' : 'Suspicious'
+  el('urlBadge').className = 'badge ' + (lastReport.checks.urlHygiene ? 'ok' : 'warn')
+  el('urlNote').textContent = lastReport.checks.urlHygiene ? 'URL looks clean.' : 'URL contains query params or tokens; check exposure.'
+
+  // show summary and basic checks
+  hideEl(el('loading'))
+  showEl(el('summary'))
+  showEl(el('basicChecks'))
+
+  // update copilot
+  updateCopilot()
 }
 
-function goPlans(){show("plans")}
-
-function unlock(){
-advanced=true;
-alert("Payment successful (demo)");
-show("results");
-updateAI();
+/* Download simple PDF via print() — creates printable view */
+function downloadReport(){
+  if(!lastReport){
+    alert('Run a scan first.')
+    return
+  }
+  // Create printable content in new window to control layout
+  const w = window.open('', '_blank', 'noopener')
+  const html = `
+  <html>
+  <head>
+    <meta charset="utf-8"><title>SiteGuard Report</title>
+    <style>
+      body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#111}
+      h1{font-size:20px}
+      .card{border:1px solid #ddd;padding:12px;margin-bottom:10px;border-radius:6px}
+      .muted{color:#666;font-size:13px}
+    </style>
+  </head>
+  <body>
+    <h1>SiteGuard — Relatório Básico</h1>
+    <p class="muted">URL: ${lastReport.url}</p>
+    <div class="card"><strong>Score:</strong> ${lastReport.score}/100</div>
+    <div class="card"><strong>Checks:</strong>
+      <ul>
+        <li>HTTPS: ${lastReport.checks.hasHttps ? 'OK' : 'Missing'}</li>
+        <li>Availability: ${lastReport.checks.up ? 'Online' : 'Offline'}</li>
+        <li>Response time: ${lastReport.checks.responseTimeMs} ms</li>
+        <li>URL hygiene: ${lastReport.checks.urlHygiene ? 'Clean' : 'Suspicious'}</li>
+        <li>Mixed refs: ${lastReport.checks.mixedCount}</li>
+        <li>CSP meta: ${lastReport.checks.hasCSP ? 'Detected' : 'Not detected'}</li>
+        <li>CMS hints: ${lastReport.checks.cmsHints.length? lastReport.checks.cmsHints.join(', '): 'None'}</li>
+      </ul>
+    </div>
+    <div class="card"><strong>Issues found:</strong>
+      <ul>${lastIssues.length ? lastIssues.map(i=>`<li>${i}</li>`).join('') : '<li>None</li>'}</ul>
+    </div>
+    <div class="card"><strong>Copilot summary:</strong><p>${generateCopilotText(false).replace(/\n/g,'<br>')}</p></div>
+    <script>window.print()</script>
+  </body>
+  </html>
+  `
+  w.document.write(html)
+  w.document.close()
 }
 
-function updateAI(){
-if(!advanced){
-aiText.textContent="Upgrade to Advanced to receive step-by-step fixes.";
-}else{
-aiText.innerHTML = issues.length
-? issues.map((i,n)=>`${n+1}. ${i} Fix: review server configuration.`).join("<br>")
-: "No critical issues detected. Your site looks solid.";
+/* Navigation */
+function goToPlans(){
+  hideEl(el('results'))
+  showEl(el('plans'))
 }
+
+/* Simulate payment & unlock advanced */
+function simulatePayment(){
+  // basic demo flow: mark advanced true and go back to results
+  isAdvanced = true
+  localStorage.setItem('siteguard_advanced','1')
+  alert('Pagamento simulado: Advanced unlock ativado (demo).')
+  hideEl(el('plans'))
+  showEl(el('results'))
+  updateCopilot()
+  // reveal advanced UI (remove locked visual)
+  const adv = document.getElementById('advancedGrid')
+  adv.classList.remove('locked')
 }
+
+/* Copilot generation (rule based) */
+function generateCopilotText(forAdvanced){
+  if(!lastReport) return 'Execute a scan para receber orientações.'
+  if(lastIssues.length===0) return 'Nenhuma falha crítica detectada. Verifique periodicamente.'
+
+  // For basic: short high-level hints
+  if(!forAdvanced){
+    const list = lastIssues.slice(0,3).map((i,idx)=>`${idx+1}. ${i.split('.').slice(0,1)}.`).join(' ')
+    return `Problemas detectados: ${list} Atualize certificados, verifique tempo de resposta e remova referências HTTP. Para instruções passo-a-passo, faça upgrade.`
+  }
+
+  // For advanced: detailed steps per issue
+  const lines = lastIssues.map((issue,idx)=>{
+    if(issue.includes('No HTTPS') || issue.includes('HTTPS')){
+      return `${idx+1}. Instalar/renovar certificado TLS: use Let's Encrypt (certbot) se possível, ou configure Cert Manager no seu host. Verifique cadeia de certificados e redirecione HTTP→HTTPS.`
+    }
+    if(issue.includes('offline')){
+      return `${idx+1}. Verifique DNS e hosting: confirme A/AAAA records, firewall e logs do servidor. Teste com cURL e verifique bloqueios por IP.`
+    }
+    if(issue.includes('Slow response')){
+      return `${idx+1}. Otimize: verifique TTFB, plugins pesados, CDN e caching. Meça com ferramentas como GTmetrix/Pagespeed.`
+    }
+    if(issue.includes('URL contains')){
+      return `${idx+1}. Evite expor parâmetros sensíveis na URL. Use POST para dados sensíveis e valide inputs no servidor.`
+    }
+    if(issue.includes('mixed')){
+      return `${idx+1}. Mixed content: substitua recursos 'http://' por 'https://' ou carregue via CDN segura.`
+    }
+    return `${idx+1}. ${issue} — verifique logs e aplique correções específicas.`
+  })
+  return lines.join('\n\n')
+}
+
+/* Update copilot UI */
+function updateCopilot(){
+  const forAdvanced = !!isAdvanced
+  if(forAdvanced){
+    el('aiOutput').innerHTML = generateCopilotText(true).replace(/\n/g,'<br>')
+  }else{
+    el('aiOutput').innerText = generateCopilotText(false)
+  }
+}
+
+/* Init: recover simulated purchase */
+(function init(){
+  if(localStorage.getItem('siteguard_advanced')==='1'){
+    isAdvanced = true
+    const adv = document.getElementById('advancedGrid')
+    adv.classList.remove('locked')
+  }
+})();
 </script>
-
 </body>
 </html>
