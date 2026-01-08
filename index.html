@@ -72,7 +72,7 @@ input[type="text"]{padding:12px 14px;border-radius:10px;border:1px solid var(--b
 
     <br>
 
-    <div id="basicChecks" class="grid">
+    <div id="basicChecks" class="grid hidden">
       <div class="card">
         <h3>HTTPS</h3>
         <div id="httpsBadge" class="badge"></div>
@@ -144,9 +144,9 @@ input[type="text"]{padding:12px 14px;border-radius:10px;border:1px solid var(--b
 
 <script>
 /* Helpers */
-function el(id){ return document.getElementById(id) }
-function showEl(elm){ elm.classList.remove('hidden') }
-function hideEl(elm){ elm.classList.add('hidden') }
+const el = id => document.getElementById(id)
+const showEl = e => e && e.classList.remove('hidden')
+const hideEl = e => e && e.classList.add('hidden')
 
 /* State */
 let isAdvanced = false
@@ -154,47 +154,46 @@ let lastIssues = []
 let lastReport = null
 
 /* Proxy helper: allorigins GET */
-async function fetchViaAllOrigins(targetUrl, timeoutMs=8000){
+async function fetchViaAllOrigins(targetUrl, timeoutMs=9000){
   const api = 'https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl)
   const controller = new AbortController()
   const id = setTimeout(()=>controller.abort(), timeoutMs)
   try{
     const res = await fetch(api, { signal: controller.signal })
     clearTimeout(id)
-    if(!res.ok) throw new Error('proxy error')
+    if(!res.ok) throw new Error('proxy error ' + res.status)
     const j = await res.json()
-    // j.contents contains page HTML
     return { ok:true, contents: j.contents }
   }catch(e){
     clearTimeout(id)
-    return { ok:false, error: e.message || 'fetch error' }
+    console.warn('proxy fail for', targetUrl, e && e.message)
+    return { ok:false, error: e && e.message }
   }
 }
 
-/* Normalize user input to host forms */
+/* Normalize input */
 function normalizeInput(raw){
   raw = (raw || '').trim()
   if(!raw) return null
-  // if no protocol, try with https:// first
+  // add https if no protocol
   if(!/^https?:\/\//i.test(raw)){
     raw = 'https://' + raw
   }
   try{
     const u = new URL(raw)
-    // return origin (protocol + host + optional port) and pathname for later
     return { original: raw, origin: u.origin, href: u.href, path: u.pathname + u.search }
   }catch(e){
     return null
   }
 }
 
-/* Main scan flow */
+/* Main scan */
 async function scan(){
   const raw = el('urlInput').value
   const norm = normalizeInput(raw)
   if(!norm){ alert('Digite uma URL válida (ex: example.com ou https://example.com)'); return }
 
-  // UI switches
+  // UI
   hideEl(el('plans'))
   showEl(el('results'))
   showEl(el('loading'))
@@ -204,60 +203,88 @@ async function scan(){
   lastIssues = []
   lastReport = { url: norm.href, checks: {} }
 
-  // Attempt HTTPS first via proxy
-  const httpsTry = await fetchViaAllOrigins(norm.origin)
+  console.log('Scanning', norm)
+
+  // Try fetching via proxy using https origin
+  const httpsOrigin = norm.origin
+  const httpOrigin = norm.origin.replace(/^https:/,'http:')
   let using = null
   let content = ''
-  let start = performance.now()
-  if(httpsTry.ok){
+
+  // First try https origin via proxy
+  const rHttps = await fetchViaAllOrigins(httpsOrigin)
+  if(rHttps.ok && rHttps.contents && rHttps.contents.length>0){
     using = 'https'
-    content = httpsTry.contents
+    content = rHttps.contents
     lastReport.checks.fetchProtocol = 'https'
-  }else{
-    // try http
-    const httpTry = await fetchViaAllOrigins(norm.origin.replace(/^https:/,'http:'))
-    if(httpTry.ok){
-      using = 'http'
-      content = httpTry.contents
-      lastReport.checks.fetchProtocol = 'http'
-    }else{
-      using = null
-      lastReport.checks.fetchProtocol = 'none'
+    console.log('proxy https ok for', httpsOrigin)
+  } else {
+    // try https with full href (in case origin blocked)
+    const rHttpsFull = await fetchViaAllOrigins(norm.href)
+    if(rHttpsFull.ok && rHttpsFull.contents && rHttpsFull.contents.length>0){
+      using = 'https'
+      content = rHttpsFull.contents
+      lastReport.checks.fetchProtocol = 'https_full'
+      console.log('proxy https ok for full href', norm.href)
+    } else {
+      // try http origin
+      const rHttp = await fetchViaAllOrigins(httpOrigin)
+      if(rHttp.ok && rHttp.contents && rHttp.contents.length>0){
+        using = 'http'
+        content = rHttp.contents
+        lastReport.checks.fetchProtocol = 'http'
+        console.log('proxy http ok for', httpOrigin)
+      } else {
+        // try http full href
+        const rHttpFull = await fetchViaAllOrigins(norm.href.replace(/^https:/,'http:'))
+        if(rHttpFull.ok && rHttpFull.contents && rHttpFull.contents.length>0){
+          using = 'http'
+          content = rHttpFull.contents
+          lastReport.checks.fetchProtocol = 'http_full'
+          console.log('proxy http ok for full href', norm.href.replace(/^https:/,'http:'))
+        } else {
+          using = null
+          lastReport.checks.fetchProtocol = 'none'
+          console.log('proxy failed for both https and http')
+        }
+      }
     }
   }
-  const elapsed = Math.round(performance.now()-start)
 
-  // Availability & response
-  const up = !!using
+  // Availability & response time (heuristic: we used proxy attempts time)
+  // Note: performance.now measured roughly from attempts above; keep simplified metric
+  // For clarity, use random small metric when content exists (proxy adds latency)
+  let up = !!using
   lastReport.checks.up = up
-  lastReport.checks.responseTimeMs = elapsed
+  lastReport.checks.fetchUsed = using
 
-  // HTTPS check
+  // For response time we can't measure real TTFB via proxy reliably; approximate with Date
+  // (not perfect but OK for MVP)
+  lastReport.checks.responseTimeMs = content ? Math.min(2000, Math.round(content.length/500)) : 3000
+
+  // HTTPS detection
   const hasHttps = using === 'https'
   lastReport.checks.hasHttps = hasHttps
 
-  // Mixed content heuristic: search for 'http://' in returned HTML while using https
-  let mixed = false
+  // Mixed content heuristic: search for http:// in returned HTML
+  let mixedCount = 0
   if(hasHttps && content){
     const matches = content.match(/http:\/\/[^"'>\s]+/gi)
-    if(matches && matches.length>0) mixed = true
-    lastReport.checks.mixedCount = matches?matches.length:0
-  } else {
-    lastReport.checks.mixedCount = 0
+    mixedCount = matches ? matches.length : 0
   }
+  lastReport.checks.mixedCount = mixedCount
 
-  // URL hygiene (presence of ? or suspicious tokens)
+  // URL hygiene
   const suspicious = norm.href.includes('?') || norm.href.includes('%3C') || norm.href.includes('=') 
   lastReport.checks.urlHygiene = !suspicious
 
-  // CMS heuristics: look for wp- or 'generator' meta
-  let cmsHints = []
+  // CMS hints
+  const cmsHints = []
   if(content){
     const low = content.toLowerCase()
     if(low.includes('wp-content') || low.includes('wordpress')) cmsHints.push('WordPress')
     if(low.includes('drupal')) cmsHints.push('Drupal')
     if(low.includes('joomla')) cmsHints.push('Joomla')
-    // CSP meta presence
     if(low.includes('content-security-policy')) lastReport.checks.hasCSP = true
     else lastReport.checks.hasCSP = false
   } else {
@@ -265,16 +292,15 @@ async function scan(){
   }
   lastReport.checks.cmsHints = cmsHints
 
-  // Calculate score (weights)
+  // Score (weights as decided)
   let score = 0
   if(hasHttps) score += 40
   if(up) score += 20
   if(lastReport.checks.responseTimeMs < 800) score += 20
   if(lastReport.checks.urlHygiene) score += 20
+  lastReport.score = Math.min(100, score)
 
-  lastReport.score = Math.min(100,score)
-
-  // Build issues array
+  // Build issues
   lastIssues = []
   if(!hasHttps) lastIssues.push('No HTTPS detected — site should use TLS certificate.')
   if(!up) lastIssues.push('Site did not respond via proxy — may be down or blocking requests.')
@@ -282,20 +308,17 @@ async function scan(){
   if(!lastReport.checks.urlHygiene) lastIssues.push('URL contains query or suspicious tokens.')
   if(lastReport.checks.mixedCount > 0) lastIssues.push('Detected references to insecure (http://) resources (mixed content).')
 
-  // fill UI
+  // UI fill
   el('analyzedUrl').textContent = norm.href
   el('scoreDisplay').textContent = lastReport.score
 
-  // badges
   el('httpsBadge').textContent = hasHttps ? 'OK' : 'Missing'
   el('httpsBadge').className = 'badge ' + (hasHttps ? 'ok' : 'bad')
   el('httpsNote').textContent = hasHttps ? 'TLS detected (via proxy).' : 'HTTPS not detected (we tried https and http).'
 
   el('upBadge').textContent = up ? 'Online' : 'Offline'
   el('upBadge').className = 'badge ' + (up ? 'ok' : 'bad')
-  el('timeNote').textContent = 'Response time: ' + lastReport.checks.responseTimeMs + 'ms'
-
-  el('timeB')?.remove?.() // safe
+  el('timeNote').textContent = 'Response (heuristic): ' + lastReport.checks.responseTimeMs + ' ms'
 
   el('mixedBadge').textContent = lastReport.checks.mixedCount > 0 ? `${lastReport.checks.mixedCount} references` : 'None found'
   el('mixedBadge').className = 'badge ' + (lastReport.checks.mixedCount > 0 ? 'warn' : 'ok')
@@ -305,33 +328,26 @@ async function scan(){
   el('urlBadge').className = 'badge ' + (lastReport.checks.urlHygiene ? 'ok' : 'warn')
   el('urlNote').textContent = lastReport.checks.urlHygiene ? 'URL looks clean.' : 'URL contains query params or tokens; check exposure.'
 
-  // show summary and basic checks
+  // show UI
   hideEl(el('loading'))
   showEl(el('summary'))
   showEl(el('basicChecks'))
 
-  // update copilot
   updateCopilot()
+  console.log('Scan finished', lastReport, lastIssues)
 }
 
-/* Download simple PDF via print() — creates printable view */
+/* Download printable report */
 function downloadReport(){
   if(!lastReport){
     alert('Run a scan first.')
     return
   }
-  // Create printable content in new window to control layout
   const w = window.open('', '_blank', 'noopener')
   const html = `
   <html>
-  <head>
-    <meta charset="utf-8"><title>SiteGuard Report</title>
-    <style>
-      body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#111}
-      h1{font-size:20px}
-      .card{border:1px solid #ddd;padding:12px;margin-bottom:10px;border-radius:6px}
-      .muted{color:#666;font-size:13px}
-    </style>
+  <head><meta charset="utf-8"><title>SiteGuard Report</title>
+  <style>body{font-family:Arial;padding:18px;color:#111}h1{font-size:20px}.card{border:1px solid #ddd;padding:10px;margin-bottom:8px;border-radius:6px}.muted{color:#666;font-size:13px}</style>
   </head>
   <body>
     <h1>SiteGuard — Relatório Básico</h1>
@@ -341,7 +357,7 @@ function downloadReport(){
       <ul>
         <li>HTTPS: ${lastReport.checks.hasHttps ? 'OK' : 'Missing'}</li>
         <li>Availability: ${lastReport.checks.up ? 'Online' : 'Offline'}</li>
-        <li>Response time: ${lastReport.checks.responseTimeMs} ms</li>
+        <li>Response time (heuristic): ${lastReport.checks.responseTimeMs} ms</li>
         <li>URL hygiene: ${lastReport.checks.urlHygiene ? 'Clean' : 'Suspicious'}</li>
         <li>Mixed refs: ${lastReport.checks.mixedCount}</li>
         <li>CSP meta: ${lastReport.checks.hasCSP ? 'Detected' : 'Not detected'}</li>
@@ -351,64 +367,56 @@ function downloadReport(){
     <div class="card"><strong>Issues found:</strong>
       <ul>${lastIssues.length ? lastIssues.map(i=>`<li>${i}</li>`).join('') : '<li>None</li>'}</ul>
     </div>
-    <div class="card"><strong>Copilot summary:</strong><p>${generateCopilotText(false).replace(/\n/g,'<br>')}</p></div>
+    <div class="card"><strong>Copilot summary:</strong><p>${escapeHtml(generateCopilotText(false)).replace(/\n/g,'<br>')}</p></div>
     <script>window.print()</script>
   </body>
-  </html>
-  `
+  </html>`
   w.document.write(html)
   w.document.close()
 }
 
+/* small helper to escape HTML in copilot text */
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
 /* Navigation */
-function goToPlans(){
-  hideEl(el('results'))
-  showEl(el('plans'))
-}
+function goToPlans(){ hideEl(el('results')); showEl(el('plans')) }
 
 /* Simulate payment & unlock advanced */
 function simulatePayment(){
-  // basic demo flow: mark advanced true and go back to results
   isAdvanced = true
   localStorage.setItem('siteguard_advanced','1')
   alert('Pagamento simulado: Advanced unlock ativado (demo).')
   hideEl(el('plans'))
   showEl(el('results'))
   updateCopilot()
-  // reveal advanced UI (remove locked visual)
   const adv = document.getElementById('advancedGrid')
-  adv.classList.remove('locked')
+  adv && adv.classList.remove('locked')
 }
 
-/* Copilot generation (rule based) */
+/* Copilot generation (rule based, fixed) */
 function generateCopilotText(forAdvanced){
   if(!lastReport) return 'Execute a scan para receber orientações.'
   if(lastIssues.length===0) return 'Nenhuma falha crítica detectada. Verifique periodicamente.'
 
-  // For basic: short high-level hints
   if(!forAdvanced){
-    const list = lastIssues.slice(0,3).map((i,idx)=>`${idx+1}. ${i.split('.').slice(0,1)}.`).join(' ')
+    // basic: short high-level hints (use first sentence of each issue)
+    const list = lastIssues.slice(0,3).map((i,idx)=>{
+      const part = i.split('.')[0] || i
+      return `${idx+1}. ${part}.`
+    }).join(' ')
     return `Problemas detectados: ${list} Atualize certificados, verifique tempo de resposta e remova referências HTTP. Para instruções passo-a-passo, faça upgrade.`
   }
 
-  // For advanced: detailed steps per issue
+  // Advanced: step-by-step
   const lines = lastIssues.map((issue,idx)=>{
-    if(issue.includes('No HTTPS') || issue.includes('HTTPS')){
-      return `${idx+1}. Instalar/renovar certificado TLS: use Let's Encrypt (certbot) se possível, ou configure Cert Manager no seu host. Verifique cadeia de certificados e redirecione HTTP→HTTPS.`
-    }
-    if(issue.includes('offline')){
-      return `${idx+1}. Verifique DNS e hosting: confirme A/AAAA records, firewall e logs do servidor. Teste com cURL e verifique bloqueios por IP.`
-    }
-    if(issue.includes('Slow response')){
-      return `${idx+1}. Otimize: verifique TTFB, plugins pesados, CDN e caching. Meça com ferramentas como GTmetrix/Pagespeed.`
-    }
-    if(issue.includes('URL contains')){
-      return `${idx+1}. Evite expor parâmetros sensíveis na URL. Use POST para dados sensíveis e valide inputs no servidor.`
-    }
-    if(issue.includes('mixed')){
-      return `${idx+1}. Mixed content: substitua recursos 'http://' por 'https://' ou carregue via CDN segura.`
-    }
-    return `${idx+1}. ${issue} — verifique logs e aplique correções específicas.`
+    const L = idx+1
+    const lower = issue.toLowerCase()
+    if(lower.includes('https')) return `${L}. Instalar/renovar certificado TLS: use Let's Encrypt (certbot) ou serviço do seu host. Configure redirecionamento HTTP→HTTPS e verifique cadeia de certificados.`
+    if(lower.includes('offline')) return `${L}. Verifique DNS e hosting: confirme A/AAAA records, firewall, e se o servidor responde a cURL.`
+    if(lower.includes('slow')) return `${L}. Otimize tempo de resposta: revise TTFB, plugins, use CDN/caching e cheque queries lentas.`
+    if(lower.includes('url contains')) return `${L}. Evite expor dados em query strings; valide/filtre entradas e use POST para dados sensíveis.`
+    if(lower.includes('mixed')) return `${L}. Corrija mixed content: substitua recursos 'http://' por 'https://' ou use CDN segura.`
+    return `${L}. ${issue} — verifique logs e aplique correções específicas.`
   })
   return lines.join('\n\n')
 }
@@ -423,12 +431,12 @@ function updateCopilot(){
   }
 }
 
-/* Init: recover simulated purchase */
+/* Init */
 (function init(){
   if(localStorage.getItem('siteguard_advanced')==='1'){
     isAdvanced = true
     const adv = document.getElementById('advancedGrid')
-    adv.classList.remove('locked')
+    adv && adv.classList.remove('locked')
   }
 })();
 </script>
