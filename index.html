@@ -1,31 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
- <meta charset="UTF-8">
- <title>Security Checker</title>
-</head>
-<body>
-
-<h1>Security Checker</h1>
-<p>Check security of any website</p>
-
-<input type="text" id="domain"
-placeholder="example.com">
-<button onclick="checkSite()">Analyze</button>
-
-<div id="result"></div>
-
-<script>
-function checkSite() {
- const domain =
-document.getElementById("domain").value;
-
-document.getElementById("result").innerTex
-t =
-  "Analyzing " + domain + "...
-(working)";
-}
-</script>
-
-</body>
-</html>
+<html lang="pt-BR">
+ <head>
+   <meta charset="UTF-8">
+    <title>Site Security Check</title>
+    <style>
+     body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+     }
+     header {
+      padding: 80px 20px;
+      text-align: center;
+     }
+     h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+     }
+     p {
+      color: #cbd5f5;
+      max-width: 600px;
+      margin: 0 auto 30px;
+     }
+     input {
+      padding: 12px;
+      width: 260px;
+      border-radius: 6px;
+      border: none;
+      margin-right: 10px;
+     }
+     button {
+      padding: 12px 20px;
+      border-radius: 6px;
+      border: none;
+      background: #38bdf8;
+      color: #020617;
+      font-weight: bold;
+      cursor: pointer;
+     }
+     
+    </style>
