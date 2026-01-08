@@ -1,109 +1,269 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
- <head>
-   <meta charset="UTF-8">
-    <title>Site Security Check</title>
-    <style>
-     body {
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SiteGuard — Security Analysis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    :root {
+      --bg: #020617;
+      --border: #1e293b;
+      --card: #020617;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --primary: #38bdf8;
+      --accent: #0ea5e9;
+      --danger: #f87171;
+      --success: #4ade80;
+      --warn: #facc15;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-     }
-     header {
-      padding: 80px 20px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      max-width: 1200px;
+      margin: auto;
+      padding: 30px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h2 {
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+
+    nav button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      margin-left: 15px;
+      font-size: 0.9rem;
+    }
+
+    section {
+      display: none;
+      max-width: 1100px;
+      margin: auto;
+      padding: 60px 20px;
+    }
+
+    section.active {
+      display: block;
+    }
+
+    .hero {
       text-align: center;
-     }
-     h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-     }
-     p {
-      color: #cbd5f5;
+      padding: 100px 20px;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+
+    .hero p {
+      color: var(--muted);
       max-width: 600px;
-      margin: 0 auto 30px;
-     }
-     input {
-      padding: 12px;
-      width: 260px;
-      border-radius: 6px;
+      margin: 0 auto 40px;
+    }
+
+    .input-box {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      padding: 14px;
+      width: 280px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button.primary {
+      padding: 14px 26px;
+      border-radius: 8px;
       border: none;
-      margin-right: 10px;
-     }
-     button {
-      padding: 12px 20px;
-      border-radius: 6px;
-      border: none;
-      background: #38bdf8;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
       color: #020617;
       font-weight: bold;
       cursor: pointer;
-     }
-     section {
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
       padding: 30px;
-      text-align: cente;
-     }
-     .cards {
-      display: flex;
-      gap: 20px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 30px;
-     }
-     .card {
-      background: #020617;
-      padding: 30px;
-      border-radius: 10px;
-      width: 260px;
-      border: 1px solid #1e293b;
-     }
-     footer {
+      background: var(--card);
+    }
+
+    .score {
+      font-size: 3rem;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+    }
+
+    .ok { background: #052e1a; color: var(--success); }
+    .warn { background: #3a2e05; color: var(--warn); }
+    .bad { background: #3a0505; color: var(--danger); }
+
+    .locked {
+      filter: blur(4px);
+      opacity: 0.6;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
       padding: 30px;
       text-align: center;
+      color: var(--muted);
       font-size: 0.9rem;
-      color: #94a3b8;
-     }
-     </style>
- </head>
- <body>
+    }
+  </style>
+</head>
+<body>
 
-  <header>
-   <h1>Análise de Segurança de Sites</h1>
-   <p>Descubra falhas básicas e avançadas de segurança no seu site em segundos.
-   Sem cadastro. Sem acesso ao servidor. </p>
+<header>
+  <h2>SiteGuard</h2>
+  <nav>
+    <button onclick="show('home')">Home</button>
+    <button onclick="show('results')">Results</button>
+    <button onclick="show('plans')">Plans</button>
+  </nav>
+</header>
 
-   <input type="text"
-    placeholder="https://exemplo.com">
-   <button>Analisar Site</button>
-  </header>
+<!-- HOME -->
+<section id="home" class="active">
+  <div class="hero">
+    <h1>Automated website<br>security analysis</h1>
+    <p>Run essential and advanced security checks in seconds.
+       No login. No server access.</p>
 
-  <section>
-   <h2>Como funciona?</h2>
-   <div class="cards">
-    <div class="card">1- Insira a URL do site</div>
-    <div class="card">2- Executamos verificações automáticas</div>
-    <div class="card">3- Receba um relatório claro</div>
-   </div>
-  </section>
-
-  <section>
-   <h2>Planos</h2>
-   <div class="cards">
-     <div class="card">
-      <h3>Básico</h3>
-      <p>Verificações essenciais de segurança</p>
-      <strong>Grátis</strong>
-     </div>
-    <div class="card">
-     <h3>Avançado</h3>
-     <p>Relatório completo + soluções detalhadas (PDF)</p>
-       <strong>Pago</strong>
+    <div class="input-box">
+      <input placeholder="https://example.com">
+      <button class="primary" onclick="show('results')">Analyze</button>
     </div>
-   </div>
-  </section>
+  </div>
+</section>
 
-  <footer>
-   © Site Security Check - análise automática de segurança
-  </footer>
- </body>
+<!-- RESULTS -->
+<section id="results">
+  <h2>Scan Results</h2>
+
+  <div class="card">
+    <div class="score">72 / 100</div>
+    <p style="text-align:center;color:var(--muted)">Overall security score</p>
+  </div>
+
+  <br>
+
+  <div class="grid">
+    <div class="card">
+      <h3>HTTPS</h3>
+      <span class="badge ok">OK</span>
+    </div>
+
+    <div class="card">
+      <h3>Security Headers</h3>
+      <span class="badge warn">Partial</span>
+    </div>
+
+    <div class="card">
+      <h3>DNS Exposure</h3>
+      <span class="badge ok">OK</span>
+    </div>
+
+    <div class="card">
+      <h3>Response Time</h3>
+      <span class="badge bad">Slow</span>
+    </div>
+  </div>
+
+  <br>
+
+  <h3>Advanced Checks</h3>
+  <div class="grid locked">
+    <div class="card">HSTS Configuration</div>
+    <div class="card">CSP Policy</div>
+    <div class="card">Server Fingerprinting</div>
+  </div>
+
+  <br>
+  <button class="primary" onclick="show('plans')">Unlock Advanced Analysis</button>
+</section>
+
+<!-- PLANS -->
+<section id="plans">
+  <h2>Choose your plan</h2>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Basic</h3>
+      <p>Essential security checks</p>
+      <ul>
+        <li>HTTPS check</li>
+        <li>Basic headers</li>
+        <li>DNS & response time</li>
+      </ul>
+      <strong>Free</strong>
+    </div>
+
+    <div class="card">
+      <h3>Advanced</h3>
+      <p>Full security report</p>
+      <ul>
+        <li>All basic checks</li>
+        <li>Advanced headers</li>
+        <li>Security score</li>
+        <li>PDF report</li>
+        <li>Fix recommendations</li>
+      </ul>
+      <strong>$9 / scan</strong>
+      <br><br>
+      <button class="primary">Proceed to payment</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © SiteGuard — Professional website security checks
+</footer>
+
+<script>
+  function show(page) {
+    document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+    document.getElementById(page).classList.add("active");
+    window.scrollTo(0,0);
+  }
+</script>
+
+</body>
 </html>
