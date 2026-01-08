@@ -39,5 +39,71 @@
       font-weight: bold;
       cursor: pointer;
      }
-     
-    </style>
+     section {
+      padding: 30px;
+      text-align: cente;
+     }
+     .cards {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+     }
+     .card {
+      background: #020617;
+      padding: 30px;
+      border-radius: 10px;
+      width: 260px;
+      border: 1px solid #1e293b;
+     }
+     footer {
+      padding: 30px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #94a3b8;
+     }
+     </style>
+ </head>
+ <body>
+
+  <header>
+   <h1>Análise de Segurança de Sites</h1>
+   <p>Descubra falhas básicas e avançadas de segurança no seu site em segundos.
+   Sem cadastro. Sem acesso ao servidor. </p>
+
+   <input type="text"
+    placeholder="https://exemplo.com">
+   <button>Analisar Site</button>
+  </header>
+
+  <section>
+   <h2>Como funciona?</h2>
+   <div class="cards">
+    <div class="card">1- Insira a URL do site</div>
+    <div class="card">2- Executamos verificações automáticas</div>
+    <div class="card">3- Receba um relatório claro</div>
+   </div>
+  </section>
+
+  <section>
+   <h2>Planos</h2>
+   <div class="cards">
+     <div class="card">
+      <h3>Básico</h3>
+      <p>Verificações essenciais de segurança</p>
+      <strong>Grátis</strong>
+     </div>
+    <div class="card">
+     <h3>Avançado</h3>
+     <p>Relatório completo + soluções detalhadas (PDF)</p>
+       <strong>Pago</strong>
+    </div>
+   </div>
+  </section>
+
+  <footer>
+   © Site Security Check - análise automática de segurança
+  </footer>
+ </body>
+</html>
