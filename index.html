@@ -6,157 +6,168 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-:root {
-  --bg:#020617; --border:#1e293b; --text:#e5e7eb;
-  --muted:#94a3b8; --primary:#38bdf8; --accent:#0ea5e9;
-  --ok:#4ade80; --warn:#facc15; --bad:#f87171;
+:root{
+--bg:#020617;--border:#1e293b;--text:#e5e7eb;
+--muted:#94a3b8;--primary:#38bdf8;--accent:#0ea5e9;
+--ok:#4ade80;--warn:#facc15;--bad:#f87171;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
 header{max-width:1200px;margin:auto;padding:30px 20px;display:flex;justify-content:space-between}
-button{cursor:pointer}
-nav button{background:none;border:none;color:var(--muted);margin-left:15px}
-
+nav button{background:none;border:none;color:var(--muted);margin-left:15px;cursor:pointer}
 section{display:none;max-width:1100px;margin:auto;padding:60px 20px}
 section.active{display:block}
-
 .hero{text-align:center;padding:100px 20px}
 .hero h1{font-size:3rem}
 .hero p{color:var(--muted);max-width:600px;margin:20px auto 40px}
-
 .input-box{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
 input{padding:14px;width:280px;border-radius:8px;border:1px solid var(--border);
 background:var(--bg);color:var(--text)}
-
 .primary{padding:14px 26px;border-radius:8px;border:none;
 background:linear-gradient(90deg,var(--primary),var(--accent));
-color:#020617;font-weight:bold}
-
-.card{border:1px solid var(--border);border-radius:14px;padding:30px}
+color:#020617;font-weight:bold;cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px}
-
+.card{border:1px solid var(--border);border-radius:14px;padding:30px}
 .badge{padding:6px 10px;border-radius:20px;font-size:.8rem}
 .ok{background:#052e1a;color:var(--ok)}
 .warn{background:#3a2e05;color:var(--warn)}
 .bad{background:#3a0505;color:var(--bad)}
-
+.score{font-size:3rem;text-align:center;font-weight:bold}
 .locked{filter:blur(4px);opacity:.6}
-
-.loading{
-  width:40px;height:40px;border:4px solid var(--border);
-  border-top:4px solid var(--primary);
-  border-radius:50%;animation:spin 1s linear infinite;margin:40px auto
-}
+.loading{width:40px;height:40px;border:4px solid var(--border);
+border-top:4px solid var(--primary);border-radius:50%;
+animation:spin 1s linear infinite;margin:40px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
-
 footer{border-top:1px solid var(--border);padding:30px;text-align:center;color:var(--muted)}
+@media print{
+body{background:#fff;color:#000}
+header,nav,.primary{display:none}
+.card{border:1px solid #000}
+}
 </style>
 </head>
 
 <body>
 
 <header>
-  <h2>SiteGuard</h2>
-  <nav>
-    <button onclick="show('home')">Home</button>
-    <button onclick="show('results')">Results</button>
-    <button onclick="show('plans')">Plans</button>
-  </nav>
+<h2>SiteGuard</h2>
+<nav>
+<button onclick="show('home')">Home</button>
+<button onclick="show('results')">Results</button>
+<button onclick="show('plans')">Plans</button>
+</nav>
 </header>
 
-<!-- HOME -->
 <section id="home" class="active">
-  <div class="hero">
-    <h1>Automated website<br>security analysis</h1>
-    <p>No login. No server access. Real checks.</p>
-    <div class="input-box">
-      <input id="urlInput" placeholder="https://example.com">
-      <button class="primary" onclick="startScan()">Analyze</button>
-    </div>
-  </div>
+<div class="hero">
+<h1>Automated website<br>security analysis</h1>
+<p>Real checks. Clear score. Downloadable report.</p>
+<div class="input-box">
+<input id="urlInput" placeholder="https://example.com">
+<button class="primary" onclick="startScan()">Analyze</button>
+</div>
+</div>
 </section>
 
-<!-- RESULTS -->
 <section id="results">
-  <h2>Scan Results</h2>
-  <div id="loading" class="loading"></div>
+<h2>Scan Results</h2>
+<div id="loading" class="loading"></div>
 
-  <div id="resultContent" style="display:none">
-    <div class="grid">
-      <div class="card">
-        <h3>HTTPS</h3>
-        <span id="httpsBadge" class="badge"></span>
-      </div>
-      <div class="card">
-        <h3>Response Time</h3>
-        <span id="timeBadge" class="badge"></span>
-      </div>
-    </div>
+<div id="resultContent" style="display:none">
+<div class="card">
+<div class="score" id="score">0</div>
+<p style="text-align:center;color:var(--muted)">Security score</p>
+</div>
 
-    <br>
-    <h3>Advanced Checks</h3>
-    <div class="grid locked">
-      <div class="card">Security Headers</div>
-      <div class="card">CSP & HSTS</div>
-      <div class="card">Server Fingerprinting</div>
-    </div>
+<br>
 
-    <br>
-    <button class="primary" onclick="show('plans')">Unlock Advanced</button>
-  </div>
+<div class="grid">
+<div class="card"><h3>HTTPS</h3><span id="httpsB" class="badge"></span></div>
+<div class="card"><h3>Response Time</h3><span id="timeB" class="badge"></span></div>
+<div class="card"><h3>URL Format</h3><span id="urlB" class="badge"></span></div>
+<div class="card"><h3>Availability</h3><span id="upB" class="badge"></span></div>
+</div>
+
+<br>
+<button class="primary" onclick="window.print()">Download PDF</button>
+
+<br><br>
+<h3>Advanced Checks</h3>
+<div class="grid locked">
+<div class="card">Security Headers</div>
+<div class="card">CSP / HSTS</div>
+<div class="card">Server Fingerprinting</div>
+</div>
+
+<br>
+<button class="primary" onclick="show('plans')">Unlock Advanced</button>
+</div>
 </section>
 
-<!-- PLANS -->
 <section id="plans">
-  <h2>Plans</h2>
-  <div class="grid">
-    <div class="card">
-      <h3>Basic</h3>
-      <p>Essential checks</p>
-      <strong>Free</strong>
-    </div>
-    <div class="card">
-      <h3>Advanced</h3>
-      <p>Full report + PDF</p>
-      <strong>$9 / scan</strong><br><br>
-      <button class="primary">Proceed to payment</button>
-    </div>
-  </div>
+<h2>Plans</h2>
+<div class="grid">
+<div class="card">
+<h3>Basic</h3>
+<p>Essential checks</p>
+<strong>Free</strong>
+</div>
+<div class="card">
+<h3>Advanced</h3>
+<p>Full analysis + PDF</p>
+<strong>$9 / scan</strong><br><br>
+<button class="primary">Proceed to payment</button>
+</div>
+</div>
 </section>
 
 <footer>© SiteGuard</footer>
 
 <script>
 function show(p){
-  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(p).classList.add("active");
-  window.scrollTo(0,0);
+document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+document.getElementById(p).classList.add("active");
+window.scrollTo(0,0);
 }
 
 async function startScan(){
-  show('results');
-  document.getElementById("loading").style.display="block";
-  document.getElementById("resultContent").style.display="none";
+show('results');
+loading.style.display="block";
+resultContent.style.display="none";
 
-  const url = document.getElementById("urlInput").value;
-  let httpsOk = url.startsWith("https://");
+const url=urlInput.value;
+let score=0;
 
-  let start = performance.now();
-  try{
-    await fetch(url,{mode:"no-cors"});
-  }catch{}
-  let time = performance.now()-start;
+// HTTPS
+const https=url.startsWith("https://");
+httpsB.textContent=https?"OK":"No HTTPS";
+httpsB.className="badge "+(https?"ok":"bad");
+if(https)score+=40;
 
-  document.getElementById("loading").style.display="none";
-  document.getElementById("resultContent").style.display="block";
+// URL format
+const clean=!url.includes("http://");
+urlB.textContent=clean?"Clean":"Weak";
+urlB.className="badge "+(clean?"ok":"warn");
+if(clean)score+=20;
 
-  const httpsBadge=document.getElementById("httpsBadge");
-  httpsBadge.textContent=httpsOk?"OK":"No HTTPS";
-  httpsBadge.className="badge "+(httpsOk?"ok":"bad");
+// Availability + response
+let start=performance.now();
+let up=true;
+try{await fetch(url,{mode:"no-cors"})}catch{up=false}
+let time=performance.now()-start;
 
-  const timeBadge=document.getElementById("timeBadge");
-  timeBadge.textContent=time<800?"Fast":"Slow";
-  timeBadge.className="badge "+(time<800?"ok":"warn");
+upB.textContent=up?"Online":"Offline";
+upB.className="badge "+(up?"ok":"bad");
+if(up)score+=20;
+
+timeB.textContent=time<800?"Fast":"Slow";
+timeB.className="badge "+(time<800?"ok":"warn");
+if(time<800)score+=20;
+
+document.getElementById("score").textContent=score;
+
+loading.style.display="none";
+resultContent.style.display="block";
 }
 </script>
 
