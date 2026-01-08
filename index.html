@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SiteGuard — Security Analysis</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<title>SiteGuard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root{
 --bg:#020617;--border:#1e293b;--text:#e5e7eb;
@@ -13,37 +12,21 @@
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
-header{max-width:1200px;margin:auto;padding:30px 20px;display:flex;justify-content:space-between}
-nav button{background:none;border:none;color:var(--muted);margin-left:15px;cursor:pointer}
-section{display:none;max-width:1100px;margin:auto;padding:60px 20px}
-section.active{display:block}
-.hero{text-align:center;padding:100px 20px}
-.hero h1{font-size:3rem}
-.hero p{color:var(--muted);max-width:600px;margin:20px auto 40px}
-.input-box{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+header{padding:20px;border-bottom:1px solid var(--border)}
+section{display:none;padding:40px;max-width:1100px;margin:auto}
+.active{display:block}
 input{padding:14px;width:280px;border-radius:8px;border:1px solid var(--border);
 background:var(--bg);color:var(--text)}
-.primary{padding:14px 26px;border-radius:8px;border:none;
+button{padding:14px 22px;border-radius:8px;border:none;
 background:linear-gradient(90deg,var(--primary),var(--accent));
 color:#020617;font-weight:bold;cursor:pointer}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px}
-.card{border:1px solid var(--border);border-radius:14px;padding:30px}
-.badge{padding:6px 10px;border-radius:20px;font-size:.8rem}
+.card{border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px}
+.badge{padding:5px 10px;border-radius:20px;font-size:.8rem}
 .ok{background:#052e1a;color:var(--ok)}
 .warn{background:#3a2e05;color:var(--warn)}
 .bad{background:#3a0505;color:var(--bad)}
-.score{font-size:3rem;text-align:center;font-weight:bold}
-.locked{filter:blur(4px);opacity:.6}
-.loading{width:40px;height:40px;border:4px solid var(--border);
-border-top:4px solid var(--primary);border-radius:50%;
-animation:spin 1s linear infinite;margin:40px auto}
-@keyframes spin{to{transform:rotate(360deg)}}
-footer{border-top:1px solid var(--border);padding:30px;text-align:center;color:var(--muted)}
-@media print{
-body{background:#fff;color:#000}
-header,nav,.primary{display:none}
-.card{border:1px solid #000}
-}
+.locked{filter:blur(4px);opacity:.5}
+.chatbox{border-top:1px solid var(--border);padding-top:20px}
 </style>
 </head>
 
@@ -51,104 +34,86 @@ header,nav,.primary{display:none}
 
 <header>
 <h2>SiteGuard</h2>
-<nav>
-<button onclick="show('home')">Home</button>
-<button onclick="show('results')">Results</button>
-<button onclick="show('plans')">Plans</button>
-</nav>
 </header>
 
 <section id="home" class="active">
-<div class="hero">
-<h1>Automated website<br>security analysis</h1>
-<p>Real checks. Clear score. Downloadable report.</p>
-<div class="input-box">
+<h1>Website Security Check</h1>
 <input id="urlInput" placeholder="https://example.com">
-<button class="primary" onclick="startScan()">Analyze</button>
-</div>
-</div>
+<br><br>
+<button onclick="scan()">Analyze</button>
 </section>
 
 <section id="results">
-<h2>Scan Results</h2>
-<div id="loading" class="loading"></div>
+<h2>Results</h2>
 
-<div id="resultContent" style="display:none">
 <div class="card">
-<div class="score" id="score">0</div>
-<p style="text-align:center;color:var(--muted)">Security score</p>
+<strong>HTTPS</strong> <span id="httpsB" class="badge"></span>
 </div>
 
-<br>
-
-<div class="grid">
-<div class="card"><h3>HTTPS</h3><span id="httpsB" class="badge"></span></div>
-<div class="card"><h3>Response Time</h3><span id="timeB" class="badge"></span></div>
-<div class="card"><h3>URL Format</h3><span id="urlB" class="badge"></span></div>
-<div class="card"><h3>Availability</h3><span id="upB" class="badge"></span></div>
+<div class="card">
+<strong>Response Time</strong> <span id="timeB" class="badge"></span>
 </div>
 
-<br>
-<button class="primary" onclick="window.print()">Download PDF</button>
+<div class="card">
+<strong>Availability</strong> <span id="upB" class="badge"></span>
+</div>
 
-<br><br>
+<div class="card">
+<strong>URL Hygiene</strong> <span id="urlB" class="badge"></span>
+</div>
+
 <h3>Advanced Checks</h3>
-<div class="grid locked">
-<div class="card">Security Headers</div>
-<div class="card">CSP / HSTS</div>
-<div class="card">Server Fingerprinting</div>
+<div class="locked">
+<div class="card">Security headers</div>
+<div class="card">CMS exposure</div>
+<div class="card">Mixed content</div>
+<div class="card">Risk summary</div>
 </div>
 
 <br>
-<button class="primary" onclick="show('plans')">Unlock Advanced</button>
+<button onclick="goPlans()">Unlock Advanced</button>
+
+<div class="chatbox">
+<h3>Security Copilot</h3>
+<p id="aiText">Upgrade to Advanced to get full guidance.</p>
 </div>
 </section>
 
 <section id="plans">
 <h2>Plans</h2>
-<div class="grid">
 <div class="card">
 <h3>Basic</h3>
-<p>Essential checks</p>
+<p>4 essential checks</p>
 <strong>Free</strong>
 </div>
+
 <div class="card">
 <h3>Advanced</h3>
-<p>Full analysis + PDF</p>
-<strong>$10 / scan</strong><br><br>
-<button class="primary">Proceed to payment</button>
-</div>
+<p>8 checks + AI Copilot</p>
+<strong>$9 / scan</strong><br><br>
+<button onclick="unlock()">Proceed to payment</button>
 </div>
 </section>
 
-<footer>© SiteGuard</footer>
-
 <script>
-function show(p){
+let advanced=false;
+let issues=[];
+
+function show(id){
 document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-document.getElementById(p).classList.add("active");
-window.scrollTo(0,0);
+document.getElementById(id).classList.add("active");
 }
 
-async function startScan(){
-show('results');
-loading.style.display="block";
-resultContent.style.display="none";
-
+async function scan(){
+issues=[];
+show("results");
 const url=urlInput.value;
-let score=0;
 
-// HTTPS
+// HTTPS (heuristic)
 const https=url.startsWith("https://");
-httpsB.textContent=https?"OK":"No HTTPS";
+httpsB.textContent=https?"OK":"Missing";
 httpsB.className="badge "+(https?"ok":"bad");
-if(https)score+=40;
-
-// URL format
-const clean=!url.includes("http://");
-urlB.textContent=clean?"Clean":"Weak";
-urlB.className="badge "+(clean?"ok":"warn");
-if(clean)score+=20;
+if(!https)issues.push("Your site does not use HTTPS.");
 
 // Availability + response
 let start=performance.now();
@@ -158,16 +123,38 @@ let time=performance.now()-start;
 
 upB.textContent=up?"Online":"Offline";
 upB.className="badge "+(up?"ok":"bad");
-if(up)score+=20;
+if(!up)issues.push("Your site appears to be offline.");
 
 timeB.textContent=time<800?"Fast":"Slow";
 timeB.className="badge "+(time<800?"ok":"warn");
-if(time<800)score+=20;
+if(time>800)issues.push("Your site responds slowly.");
 
-document.getElementById("score").textContent=score;
+// URL hygiene
+const clean=!url.includes("?");
+urlB.textContent=clean?"Clean":"Suspicious";
+urlB.className="badge "+(clean?"ok":"warn");
+if(!clean)issues.push("Your URL contains parameters that may expose data.");
 
-loading.style.display="none";
-resultContent.style.display="block";
+updateAI();
+}
+
+function goPlans(){show("plans")}
+
+function unlock(){
+advanced=true;
+alert("Payment successful (demo)");
+show("results");
+updateAI();
+}
+
+function updateAI(){
+if(!advanced){
+aiText.textContent="Upgrade to Advanced to receive step-by-step fixes.";
+}else{
+aiText.innerHTML = issues.length
+? issues.map((i,n)=>`${n+1}. ${i} Fix: review server configuration.`).join("<br>")
+: "No critical issues detected. Your site looks solid.";
+}
 }
 </script>
 
